@@ -10,7 +10,10 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
+import android.os.AsyncTask;
+import android.os.Build;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,13 +26,14 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     private Channel mChannel;
     private MainActivity mActivity;
     private List<WifiP2pDevice> peers = new ArrayList();
-    private int port = 8888;
+    private int port;
 
-    public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel, MainActivity activity) {
+    public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel, MainActivity activity, int port) {
         super();
         this.mManager = manager;
         this.mChannel = channel;
         this.mActivity = activity;
+        this.port = port;
     }
 
     @Override
@@ -37,21 +41,35 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
         String action = intent.getAction();
 
+        System.out.println("ACTION FIRED: " + action);
+
         // TODO: Refactor using strategy pattern
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
             int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
             if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
                 System.out.println("WiFi P2P is enabled");
+
+                new ReceiveAsyncTask(mActivity, port).execute();
+                mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        System.out.println("Succeeded discovering devices.");
+                    }
+
+                    @Override
+                    public void onFailure(int reasonCode) {
+                        System.out.println("Failed discovering devices.");
+                    }
+                });
             } else {
                 System.out.println("WiFi P2P is not enabled");
             }
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
-            System.out.println("WIFI_P2P_PEERS_CHANGED_ACTION");
+            System.out.println("Requesting peers");
             // request available peers from the wifi p2p manager. This is an
             // asynchronous call and the calling activity is notified with a
             // callback on PeerListListener.onPeersAvailable()
             if (mManager != null) {
-                new ReceiveAsyncTask(context, port).execute();
                 mManager.requestPeers(mChannel, peerListListener);
             }
         } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
@@ -72,7 +90,8 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
             peers.addAll(peerList.getDeviceList());
 
             System.out.println("Printing peers: ");
-            for (WifiP2pDevice device: peers) {
+            for (WifiP2pDevice device : peers) {
+                System.out.println("Peer: " + device.toString());
 
                 final WifiP2pConfig config = new WifiP2pConfig();
                 config.wps.setup = WpsInfo.PBC;
@@ -82,14 +101,17 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
                     @Override
                     public void onSuccess() {
-                        System.out.println("WiFiDirectBroadcastReceiver.onSuccess");
-                        System.out.println("Peer address: " + config.deviceAddress);
-                        new SendAsyncTask(config.deviceAddress, port, "TESTETSTETSTSETSETSETSETSE").execute();
+                        System.out.println("Connect Success");
+                        AsyncTask<URL, Integer, Long> sendTask = new SendAsyncTask(mActivity, config.deviceAddress, port, "TESTETSTETSTSETSETSETSETSE");
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                            sendTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                        else
+                            sendTask.execute();
                     }
 
                     @Override
                     public void onFailure(int reason) {
-                        System.out.println("Connect.onFailure: Reason, " + reason);
+                        System.out.println("Connect Failure: Reason, " + reason);
                     }
                 });
             }

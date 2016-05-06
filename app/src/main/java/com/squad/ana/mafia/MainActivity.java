@@ -18,6 +18,7 @@ public class MainActivity extends AppCompatActivity {
     private WifiP2pManager.Channel mChannel;
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
+    private int port = 8888;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,31 +29,23 @@ public class MainActivity extends AppCompatActivity {
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this, port);
 
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        System.out.println("Succeeded discovering devices.");
-                    }
-
-                    @Override
-                    public void onFailure(int reasonCode) {
-                        System.out.println("Failed discovering devices.");
-                    }
-                });
+// DO nothing for now...
             }
         });
+        new ReceiveAsyncTask(this, port).execute();
     }
 
     /* register the broadcast receiver with the intent values to be matched */
