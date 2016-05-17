@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">Mafia</string>
+    <string name="google_app_id">AIzaSyB1NLIfwhL7abfe1VEQbzKC9RsYe3cbQmQ</string>
     <string name="action_settings">Settings</string>
+    <string name="title_activity_maps">Map</string>
+
 </resources>
