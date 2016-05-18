@@ -18,7 +18,7 @@ import java.nio.charset.Charset;
 /**
  * Created by millerna on 5/3/2016.
  */
-public class SendAsyncTask extends AsyncTask<URL, Integer, Long> {
+public class SendAsyncTask extends AsyncTask<Object, Integer, Long> {
 
     Context context;
     private final Location location;
@@ -42,8 +42,9 @@ public class SendAsyncTask extends AsyncTask<URL, Integer, Long> {
     }
 
     @Override
-    protected Long doInBackground(URL... params) {
+    protected Long doInBackground(Object... params) {
 
+        System.out.println("TEST1");
         DatagramSocket socket = null;
         ((Activity)context).runOnUiThread(new Runnable() {
             public void run() {
@@ -54,6 +55,7 @@ public class SendAsyncTask extends AsyncTask<URL, Integer, Long> {
             }
             }
         });
+        System.out.println("TEST2");
         try {
             // Create update message
             UpdateMessage message = new UpdateMessage();
@@ -62,6 +64,7 @@ public class SendAsyncTask extends AsyncTask<URL, Integer, Long> {
             message.setLocation(location);
             message.setSrc(macAddress);
 
+            System.out.println("TEST1");
             byte[] buf = message.toString().getBytes(Charset.forName("UTF-8"));
 
             //Open a random port to send the package
