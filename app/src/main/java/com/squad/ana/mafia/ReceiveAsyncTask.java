@@ -2,7 +2,6 @@ package com.squad.ana.mafia;
 
 import android.content.Context;
 import android.os.AsyncTask;
-import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -32,7 +31,6 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
 
     @Override
     protected Long doInBackground(URL... urls) {
-        System.out.println("Starting server background task");
         try {
             /**
              * Create a server socket and wait for client connections. This
@@ -40,16 +38,23 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
              */
             ServerSocket serverSocket = new ServerSocket(port);
             Socket client = serverSocket.accept();
+
             /**
              * If this code is reached, a client has connected and transferred data
              * Save the input stream from the client as a JPEG file
              */
             InputStream inputstream = client.getInputStream();
-            String request = readInput(inputstream);
-            System.out.println("Request: " + request);
-            Toast.makeText(context, request,
-                    Toast.LENGTH_LONG).show();
+            final String requestString = readInput(inputstream);
+
+            // Parse the request and return the protocol
+//            IProtocol protocol = parseRequestString(requestString);
+
+            System.out.println("Receiving Request: " + requestString);
+
+//            System.out.println("Location: " + protocol.getLocation());
+
             serverSocket.close();
+            System.out.println("Closing receiving socket");
             return null;
         } catch (IOException e) {
             System.out.println("ReceiveAsyncTask.doInBackground Exception: " + e);
@@ -65,5 +70,26 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
             total.append(line).append('\n');
         }
         return total.toString();
+    }
+
+    public IProtocol parseRequestString(String requestString) {
+        String[] fields = requestString.split("\n");
+        IProtocol protocol = new Protocol();
+        for(String field : fields) {
+            String[] fieldPair = field.split(":");
+            String fieldHeader = fieldPair[0].trim();
+            String fieldProperty = fieldPair[1].trim();
+            if (fieldHeader == IProtocol.Headers.TYPE.toString()) {
+                if (fieldProperty == IProtocol.ATTACK) {
+                    protocol.setType(IProtocol.ATTACK);
+                } else {
+                    protocol.setType(IProtocol.LOCATION);
+                }
+            }
+            if (fieldHeader == IProtocol.Headers.LOCATION.toString()) {
+                protocol.setLocation(fieldProperty);
+            }
+        }
+        return protocol;
     }
 }
