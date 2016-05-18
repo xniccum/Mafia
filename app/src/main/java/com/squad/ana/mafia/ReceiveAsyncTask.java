@@ -56,6 +56,14 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
                     }
                 });
                 final String data = new String(packet.getData()).trim();
+                IProtocol request = parseRequestString(data);
+                if (request.getType() == IProtocol.UPDATE) {
+                    // TODO: Handle update request
+                } else {
+                    // TODO: Handle attack request
+                }
+
+
                 ((Activity)context).runOnUiThread(new Runnable() {
                     public void run() {
                         Toast.makeText(context, "Packet received; data: " + data, Toast.LENGTH_SHORT).show();
@@ -92,20 +100,26 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
     public IProtocol parseRequestString(String requestString) {
         String[] fields = requestString.split("\n");
         IProtocol protocol = new UpdateMessage();
-        for(String field : fields) {
-            String[] fieldPair = field.split(":");
-            String fieldHeader = fieldPair[0].trim();
-            String fieldProperty = fieldPair[1].trim();
-            if (fieldHeader == IProtocol.Headers.TYPE.toString()) {
-                if (fieldProperty == IProtocol.ATTACK) {
-                    protocol.setType(IProtocol.ATTACK);
-                } else {
-                    protocol.setType(IProtocol.UPDATE);
-                }
+        String[][] fieldPairs = new String[fields.length][];
+        for (int i = 0; i < fields.length; i++) {
+            fieldPairs[i] = fields[i].split(":");
+        }
+
+        String fieldHeader = fieldPairs[0][0].trim();
+        String fieldProperty = fieldPairs[0][1].trim();
+        if (fieldHeader == IProtocol.Headers.TYPE.toString()) {
+            if (fieldProperty == IProtocol.ATTACK) {
+                protocol.setType(IProtocol.ATTACK);
+                ((AttackMessage) protocol).setTarget(fieldPairs[1][1]);
+            } else {
+                protocol.setType(IProtocol.UPDATE);
+                ((UpdateMessage) protocol).setSrc(fieldPairs[1][1]);
+                String[] location = fieldPairs[2][1].split(",");
+                double latitude = Double.parseDouble(location[0]);
+                double longitude = Double.parseDouble(location[1]);
+                ((UpdateMessage) protocol).setLocation(new Double[]{latitude, longitude});
+                ((UpdateMessage) protocol).setIsHidden(Boolean.parseBoolean(fieldPairs[3][1]));
             }
-//            if (fieldHeader == IProtocol.Headers.LOCATION.toString()) {
-//                ((UpdateMessage)protocol).setLocation(fieldProperty);
-//            }
         }
         return protocol;
     }

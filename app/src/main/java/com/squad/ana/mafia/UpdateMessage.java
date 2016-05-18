@@ -7,10 +7,10 @@ import android.location.Location;
  */
 public class UpdateMessage implements IProtocol {
 
-    private Location location;
     private String type;
     private boolean isHidden;
     private String src;
+    private Double[] coords;
 
     public boolean getIsHidden() {return isHidden; }
 
@@ -30,13 +30,9 @@ public class UpdateMessage implements IProtocol {
         this.type = type;
     }
 
-    public Location getLocation() {
-        return location;
-    }
+    public Double[] getLocation() { return this.coords; }
 
-    public void setLocation(Location location) {
-        this.location = location;
-    }
+    public void setLocation(Double[] coords) { this.coords = coords; }
 
     @Override
     public String toString() {
@@ -45,7 +41,7 @@ public class UpdateMessage implements IProtocol {
         buffer.append(System.getProperty("line.separator"));
         buffer.append(Headers.SOURCE.toString() + ": " + this.src);
         buffer.append(System.getProperty("line.separator"));
-        buffer.append(Headers.LOCATION.toString() + ": " + this.location);
+        buffer.append(Headers.LOCATION.toString() + ": " + this.coords[0] + "," + this.coords[1]);
         buffer.append(System.getProperty("line.separator"));
         buffer.append(Headers.IS_HIDDEN.toString() + ": " + this.isHidden);
         buffer.append(System.getProperty("line.separator"));
