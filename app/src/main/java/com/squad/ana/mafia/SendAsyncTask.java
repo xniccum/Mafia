@@ -4,15 +4,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
-import android.net.wifi.p2p.WifiP2pInfo;
 import android.os.AsyncTask;
 import android.widget.Toast;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -50,36 +48,34 @@ public class SendAsyncTask extends AsyncTask<URL, Integer, Long> {
     @Override
     protected Long doInBackground(URL... params) {
 
-        // IF attacker, setup an event listener for a "shoot" button. Send "update position"
-        // Otherwise, send "update position"
+        DatagramSocket socket = null;
+        ((Activity)context).runOnUiThread(new Runnable() {
+            public void run() {
+                try {
+                    Toast.makeText(context, "Starting async task: Group owner: " + getBroadcastAddress().toString() + "", Toast.LENGTH_SHORT).show();
+                } catch (IOException e) {
+                    Toast.makeText(context, "Get broadcast address exception: " + e.toString(), Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
         try {
-            /**
-             * Create a client socket with the host,
-             * port, and timeout information.
-             */
-            socket.bind(null);
-            socket.connect((new InetSocketAddress(new WifiP2pInfo().groupOwnerAddress, port)), 500);
+            //Open a random port to send the package
+            socket = new DatagramSocket();
+            socket.setBroadcast(true);
+            DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, getBroadcastAddress(), port);
+            socket.send(sendPacket);
 
-            /**
-             * Create a byte stream from a JPEG file and pipe it to the output stream
-             * of the socket. This data will be retrieved by the server device.
-             */
-            OutputStream outputStream = socket.getOutputStream();
-            outputStream.write(buf, 0, buf.length);
-            outputStream.close();
-
-        } catch (FileNotFoundException e) {
-            final String exc = e.toString();
+            final String address = getBroadcastAddress().getHostAddress();
             ((Activity)context).runOnUiThread(new Runnable() {
                 public void run() {
-                    Toast.makeText(context, exc, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Broadcast packet sent to: " + address, Toast.LENGTH_SHORT).show();
                 }
             });
         } catch (IOException e) {
             final String exc = e.toString();
             ((Activity)context).runOnUiThread(new Runnable() {
                 public void run() {
-                    Toast.makeText(context, exc, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Send Exception: " + exc, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -91,11 +87,7 @@ public class SendAsyncTask extends AsyncTask<URL, Integer, Long> {
         finally {
             if (socket != null) {
                 if (socket.isConnected()) {
-                    try {
-                        socket.close();
-                    } catch (IOException e) {
-                        //catch logic
-                    }
+                    socket.close();
                 }
             }
         }

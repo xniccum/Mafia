@@ -1,14 +1,17 @@
 package com.squad.ana.mafia;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.URL;
 
 public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
@@ -32,34 +35,50 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
     @Override
     protected Long doInBackground(URL... urls) {
         try {
-            /**
-             * Create a server socket and wait for client connections. This
-             * call blocks until a connection is accepted from a client
-             */
-            ServerSocket serverSocket = new ServerSocket(port);
-            Socket client = serverSocket.accept();
+            //Keep a socket open to listen to all the UDP trafic that is destined for this port
+            DatagramSocket socket = new DatagramSocket(port, InetAddress.getByName("0.0.0.0"));
+            socket.setBroadcast(true);
 
-            /**
-             * If this code is reached, a client has connected and transferred data
-             * Save the input stream from the client as a JPEG file
-             */
-            InputStream inputstream = client.getInputStream();
-            final String requestString = readInput(inputstream);
+            while (true) {
+                ((Activity)context).runOnUiThread(new Runnable() {
+                    public void run() {
+                        Toast.makeText(context, "Ready to receive broadcast packets!", Toast.LENGTH_SHORT).show();
+                    }
+                });
 
-            // Parse the request and return the protocol
-//            IProtocol protocol = parseRequestString(requestString);
+                //Receive a packet
+                byte[] recvBuf = new byte[15000];
+                final DatagramPacket packet = new DatagramPacket(recvBuf, recvBuf.length);
+                socket.receive(packet);
 
-            System.out.println("Receiving Request: " + requestString);
+                //Packet received
+                ((Activity)context).runOnUiThread(new Runnable() {
+                    public void run() {
+                        Toast.makeText(context, "Packet received from: " + packet.getAddress().getHostAddress(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+                final String data = new String(packet.getData()).trim();
+                ((Activity)context).runOnUiThread(new Runnable() {
+                    public void run() {
+                        Toast.makeText(context, "Packet received; data: " + data, Toast.LENGTH_SHORT).show();
+                    }
+                });
 
-//            System.out.println("Location: " + protocol.getLocation());
-
-            serverSocket.close();
-            System.out.println("Closing receiving socket");
-            return null;
-        } catch (IOException e) {
-            System.out.println("ReceiveAsyncTask.doInBackground Exception: " + e);
-            return null;
+                // Send the packet data back to the UI thread
+//                Intent localIntent = new Intent(Constants.BROADCAST_ACTION)
+//                        // Puts the data into the Intent
+//                        .putExtra(Constants.EXTENDED_DATA_STATUS, data);
+//                // Broadcasts the Intent to receivers in this app.
+//                LocalBroadcastManager.getInstance(this).sendBroadcast(localIntent);
+            }
+        } catch (IOException ex) {
+            ((Activity)context).runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(context, "Exception", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
+        return null;
     }
 
     private String readInput(InputStream inputStream) throws IOException {

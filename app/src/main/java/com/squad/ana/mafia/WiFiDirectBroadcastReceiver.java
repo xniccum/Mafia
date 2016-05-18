@@ -1,5 +1,6 @@
 package com.squad.ana.mafia;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,10 +11,9 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
-import android.os.AsyncTask;
-import android.os.Build;
+import android.os.CountDownTimer;
+import android.widget.Toast;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,9 +39,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        String action = intent.getAction();
-
-        System.out.println("ACTION FIRED: " + action);
+        final String action = intent.getAction();
 
         // TODO: Refactor using strategy pattern
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
@@ -69,6 +67,13 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
             // request available peers from the wifi p2p manager. This is an
             // asynchronous call and the calling activity is notified with a
             // callback on PeerListListener.onPeersAvailable()
+
+            ((Activity)mActivity).runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(mActivity, "Requesting peers", Toast.LENGTH_SHORT).show();
+                }
+            });
+
             if (mManager != null) {
                 mManager.requestPeers(mChannel, peerListListener);
             }
@@ -90,6 +95,10 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
             peers.addAll(peerList.getDeviceList());
 
             System.out.println("Printing peers: ");
+
+            final long startTime = 10;
+            final long interval = 10;
+
             for (WifiP2pDevice device : peers) {
                 System.out.println("Peer: " + device.toString());
 
@@ -101,12 +110,16 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
                     @Override
                     public void onSuccess() {
-                        System.out.println("Connect Success");
-                        AsyncTask<URL, Integer, Long> sendTask = new SendAsyncTask(mActivity, config.deviceAddress, port, "TESTETSTETSTSETSETSETSETSE");
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-                            sendTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                        else
-                            sendTask.execute();
+                        ((Activity)mActivity).runOnUiThread(new Runnable() {
+                            public void run() {
+                                Toast.makeText(mActivity, "Connect Success", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        CountDownTimer cDownTimer = new LocationCountDownTimer(startTime, interval, mActivity, config, port);
+                        cDownTimer.start();
+                        //and stop timer using
+                        // cDownTimer.cancel();
+                        // something like that
                     }
 
                     @Override
