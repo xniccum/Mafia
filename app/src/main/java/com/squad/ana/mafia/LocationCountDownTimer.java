@@ -1,39 +1,33 @@
 package com.squad.ana.mafia;
 
 import android.app.Activity;
-import android.net.wifi.p2p.WifiP2pConfig;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.widget.Toast;
 
-import java.net.URL;
-
 public class LocationCountDownTimer extends CountDownTimer {
 
-    private final MainActivity mActivity;
-    private final WifiP2pConfig config;
-    private final int port;
+    private final RadarActivity rActivity;
+    private AsyncTask update;
 
-    public LocationCountDownTimer(long startTime, long interval, MainActivity mActivity, WifiP2pConfig config, int port) {
+    public LocationCountDownTimer(long startTime, long interval, RadarActivity rActivity, AsyncTask update) {
         super(startTime, interval);
-        this.mActivity = mActivity;
-        this.config = config;
-        this.port = port;
+        this.rActivity = rActivity;
+        this.update = update;
     }
 
     @Override
     public void onFinish() {
-        ((Activity)mActivity).runOnUiThread(new Runnable() {
+        ((Activity) rActivity).runOnUiThread(new Runnable() {
             public void run() {
-                Toast.makeText(mActivity, "Countdown finished", Toast.LENGTH_SHORT).show();
+                Toast.makeText(rActivity, "Countdown finished", Toast.LENGTH_SHORT).show();
             }
         });
-        AsyncTask<URL, Integer, Long> sendTask = new SendAsyncTask(mActivity, config.deviceAddress, port, "My Location");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            sendTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            update.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         else
-            sendTask.execute();
+            update.execute();
     }
 
     @Override

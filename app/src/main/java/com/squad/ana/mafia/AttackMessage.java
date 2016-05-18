@@ -1,12 +1,16 @@
 package com.squad.ana.mafia;
 
 /**
- * Created by millerna on 5/6/2016.
+ * Created by millerna on 5/18/2016.
  */
-public class Protocol implements IProtocol {
+public class AttackMessage implements IProtocol {
 
-    private String location;
     private String type;
+    private String target;
+
+    public String getTarget() { return target; }
+
+    public void setTarget(String target) { this.target = target; }
 
     @Override
     public String getType() {
@@ -19,21 +23,11 @@ public class Protocol implements IProtocol {
     }
 
     @Override
-    public String getLocation() {
-        return location;
-    }
-
-    @Override
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    @Override
     public String toString() {
         StringBuffer buffer = new StringBuffer();
-        buffer.append(Headers.TYPE.toString() + ": " + this.type);
+        buffer.append(IProtocol.Headers.TYPE.toString() + ": " + this.type);
         buffer.append(System.getProperty("line.separator"));
-        buffer.append(Headers.LOCATION.toString() + ": " + this.location);
+        buffer.append(IProtocol.Headers.TARGET.toString() + ": " + this.target);
         buffer.append(System.getProperty("line.separator"));
         return buffer.toString();
     }

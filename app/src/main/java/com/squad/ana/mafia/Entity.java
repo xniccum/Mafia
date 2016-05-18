@@ -1,7 +1,6 @@
 package com.squad.ana.mafia;
 
 import android.location.Location;
-import android.location.LocationListener;
 
 import java.util.List;
 
@@ -10,6 +9,7 @@ import java.util.List;
  */
 public class Entity {
     private Location location;
+    private String macAddress;
     private boolean hiding;
     private final int RANGE = 30;
     private final int KILLRANGE = 5;
@@ -17,13 +17,15 @@ public class Entity {
     private int score;
     private boolean sighted;
 
-    public Entity(Location location) {
+    public Entity(Location location, String macAddress) {
         this.location = location;
         this.hiding = true;
         this.dead = false;
         this.score = 0;
+        this.macAddress = macAddress;
     }
 
+    public String getMacAddress() { return macAddress; }
     public boolean isHiding() { return hiding;}
     public void setLocation(Location location) {
         this.location = location;

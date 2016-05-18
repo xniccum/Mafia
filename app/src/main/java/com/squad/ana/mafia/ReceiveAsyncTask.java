@@ -17,11 +17,9 @@ import java.net.URL;
 public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
 
     private Context context;
-    private int port;
 
-    public ReceiveAsyncTask(Context context, int port) {
+    public ReceiveAsyncTask(Context context) {
         this.context = context;
-        this.port = port;
     }
 
     /**
@@ -36,7 +34,7 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
     protected Long doInBackground(URL... urls) {
         try {
             //Keep a socket open to listen to all the UDP trafic that is destined for this port
-            DatagramSocket socket = new DatagramSocket(port, InetAddress.getByName("0.0.0.0"));
+            DatagramSocket socket = new DatagramSocket(IProtocol.PORT, InetAddress.getByName("0.0.0.0"));
             socket.setBroadcast(true);
 
             while (true) {
@@ -93,7 +91,7 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
 
     public IProtocol parseRequestString(String requestString) {
         String[] fields = requestString.split("\n");
-        IProtocol protocol = new Protocol();
+        IProtocol protocol = new UpdateMessage();
         for(String field : fields) {
             String[] fieldPair = field.split(":");
             String fieldHeader = fieldPair[0].trim();
@@ -102,12 +100,12 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
                 if (fieldProperty == IProtocol.ATTACK) {
                     protocol.setType(IProtocol.ATTACK);
                 } else {
-                    protocol.setType(IProtocol.LOCATION);
+                    protocol.setType(IProtocol.UPDATE);
                 }
             }
-            if (fieldHeader == IProtocol.Headers.LOCATION.toString()) {
-                protocol.setLocation(fieldProperty);
-            }
+//            if (fieldHeader == IProtocol.Headers.LOCATION.toString()) {
+//                ((UpdateMessage)protocol).setLocation(fieldProperty);
+//            }
         }
         return protocol;
     }

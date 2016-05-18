@@ -7,15 +7,18 @@ public interface IProtocol {
 
     public enum Headers {
         TYPE,
-        LOCATION
+        SOURCE,
+        LOCATION,
+        IS_HIDDEN,
+        TARGET
     }
 
-    public static final String LOCATION = "LOCATION";
+    // Current types of protocols
+    public static final int PORT = 8888;
+    public static final String UPDATE = "UPDATE";
     public static final String ATTACK = "ATTACK";
 
     public String getType();
     public void setType(String type);
-    public String getLocation();
-    public void setLocation(String location);
     public String toString();
 }
