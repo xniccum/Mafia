@@ -129,10 +129,17 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                     }
                 });
             }
-            Location loc = entity.getLocation();
+            Location location = entity.getLocation();
             String macAddress = entity.getMacAddress();
-            System.out.println("TEST1");
-            AsyncTask<Object, Integer, Long> sendTask = new SendAsyncTask(rActivity, loc, macAddress);
+
+            // Create update message
+            UpdateMessage message = new UpdateMessage();
+            message.setType(IProtocol.UPDATE);
+            message.setIsHidden(false);
+            message.setLocation(new Double[]{location.getLatitude(), location.getLongitude()});
+            message.setSrc(macAddress);
+
+            AsyncTask<Object, Integer, Long> sendTask = new SendAsyncTask(rActivity, message);
             CountDownTimer cDownTimer = new LocationCountDownTimer(startTime, interval, rActivity, sendTask);
             cDownTimer.start();
 

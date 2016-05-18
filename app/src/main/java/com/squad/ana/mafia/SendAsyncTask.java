@@ -21,13 +21,11 @@ import java.nio.charset.Charset;
 public class SendAsyncTask extends AsyncTask<Object, Integer, Long> {
 
     Context context;
-    private final Location location;
-    private final String macAddress;
+    private IProtocol message;
 
-    public SendAsyncTask(Context context, Location location, String macAddress) {
+    public SendAsyncTask(Context context, IProtocol message) {
         this.context = context;
-        this.location = location;
-        this.macAddress = macAddress;
+        this.message = message;
     }
 
     public InetAddress getBroadcastAddress() throws IOException {
@@ -44,7 +42,6 @@ public class SendAsyncTask extends AsyncTask<Object, Integer, Long> {
     @Override
     protected Long doInBackground(Object... params) {
 
-        System.out.println("TEST1");
         DatagramSocket socket = null;
         ((Activity)context).runOnUiThread(new Runnable() {
             public void run() {
@@ -55,16 +52,7 @@ public class SendAsyncTask extends AsyncTask<Object, Integer, Long> {
             }
             }
         });
-        System.out.println("TEST2");
         try {
-            // Create update message
-            UpdateMessage message = new UpdateMessage();
-            message.setType(IProtocol.UPDATE);
-            message.setIsHidden(false);
-            message.setLocation(location);
-            message.setSrc(macAddress);
-
-            System.out.println("TEST1");
             byte[] buf = message.toString().getBytes(Charset.forName("UTF-8"));
 
             //Open a random port to send the package
