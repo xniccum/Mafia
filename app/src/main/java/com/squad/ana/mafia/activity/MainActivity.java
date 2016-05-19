@@ -1,4 +1,4 @@
-package com.squad.ana.mafia;
+package com.squad.ana.mafia.activity;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,6 +13,9 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+
+import com.squad.ana.mafia.R;
+import com.squad.ana.mafia.network.ReceiveAsyncTask;
 
 public class MainActivity extends AppCompatActivity {
 

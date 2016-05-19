@@ -1,4 +1,4 @@
-package com.squad.ana.mafia;
+package com.squad.ana.mafia.network;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -16,7 +16,11 @@ import android.os.AsyncTask;
 import android.os.CountDownTimer;
 import android.widget.Toast;
 
-import java.net.URL;
+import com.squad.ana.mafia.Timers.LocationCountDownTimer;
+import com.squad.ana.mafia.engine.Engine;
+import com.squad.ana.mafia.message.UpdateMessage;
+import com.squad.ana.mafia.activity.RadarActivity;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,15 +32,12 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     private WifiP2pManager mManager;
     private Channel mChannel;
     private RadarActivity rActivity;
-    private List<WifiP2pDevice> peers = new ArrayList();
-    private Entity entity;
+    private List<WifiP2pDevice> peers = new ArrayList<>();
 
-    public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel, RadarActivity activity, Entity entity) {
-        super();
+    public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel, RadarActivity activity) {
         this.mManager = manager;
         this.mChannel = channel;
         this.rActivity = activity;
-        this.entity = entity;
     }
 
     @Override
@@ -71,7 +72,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
             // asynchronous call and the calling activity is notified with a
             // callback on PeerListListener.onPeersAvailable()
 
-            ((Activity) rActivity).runOnUiThread(new Runnable() {
+            rActivity.runOnUiThread(new Runnable() {
                 public void run() {
                     Toast.makeText(rActivity, "Requesting peers", Toast.LENGTH_SHORT).show();
                 }
@@ -92,56 +93,59 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     private PeerListListener peerListListener = new PeerListListener() {
         @Override
         public void onPeersAvailable(WifiP2pDeviceList peerList) {
+            if(Engine.isInitilized()) {
+                // Out with the old, in with the new.
+                peers.clear();
+                peers.addAll(peerList.getDeviceList());
 
-            // Out with the old, in with the new.
-            peers.clear();
-            peers.addAll(peerList.getDeviceList());
+                System.out.println("Printing peers: ");
 
-            System.out.println("Printing peers: ");
+                final long startTime = 10;
+                final long interval = 5;
 
-            final long startTime = 10;
-            final long interval = 10;
+                for (WifiP2pDevice device : peers) {
+                    System.out.println("Peer: " + device.toString());
 
-            for (WifiP2pDevice device : peers) {
-                System.out.println("Peer: " + device.toString());
+                    final WifiP2pConfig config = new WifiP2pConfig();
+                    config.wps.setup = WpsInfo.PBC;
+                    config.deviceAddress = device.deviceAddress;
 
-                final WifiP2pConfig config = new WifiP2pConfig();
-                config.wps.setup = WpsInfo.PBC;
-                config.deviceAddress = device.deviceAddress;
+                    mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
 
-                mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                            ((Activity) rActivity).runOnUiThread(new Runnable() {
+                                public void run() {
+                                    Toast.makeText(rActivity, "Connect Success", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            //and stop timer using
+                            // cDownTimer.cancel();
+                            // something like that
+                        }
 
-                    @Override
-                    public void onSuccess() {
-                        ((Activity) rActivity).runOnUiThread(new Runnable() {
-                            public void run() {
-                                Toast.makeText(rActivity, "Connect Success", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                        //and stop timer using
-                        // cDownTimer.cancel();
-                        // something like that
-                    }
+                        @Override
+                        public void onFailure(int reason) {
+                            System.out.println("Connect Failure: Reason, " + reason);
+                        }
+                    });
+                }
 
-                    @Override
-                    public void onFailure(int reason) {
-                        System.out.println("Connect Failure: Reason, " + reason);
-                    }
-                });
+                Location location = Engine.getLocation();
+                String macAddress = Engine.getMacAddress();
+
+                if (location != null) {
+                    // Create update message
+                    UpdateMessage message = new UpdateMessage();
+                    message.setHidden(Engine.isHiding());
+                    message.setLocation(new double[]{location.getLatitude(), location.getLongitude()});
+                    message.setSrc(macAddress);
+
+                    AsyncTask<Object, Integer, Long> sendTask = new SendAsyncTask(rActivity, message);
+                    CountDownTimer cDownTimer = new LocationCountDownTimer(startTime, interval, rActivity, sendTask);
+                    cDownTimer.start();
+                }
             }
-            Location location = entity.getLocation();
-            String macAddress = entity.getMacAddress();
-
-            // Create update message
-            UpdateMessage message = new UpdateMessage();
-            message.setType(IProtocol.UPDATE);
-            message.setIsHidden(false);
-            message.setLocation(new Double[]{location.getLatitude(), location.getLongitude()});
-            message.setSrc(macAddress);
-
-            AsyncTask<Object, Integer, Long> sendTask = new SendAsyncTask(rActivity, message);
-            CountDownTimer cDownTimer = new LocationCountDownTimer(startTime, interval, rActivity, sendTask);
-            cDownTimer.start();
 
             // If an AdapterView is backed by this data, notify it
             // of the change.  For instance, if you have a ListView of available

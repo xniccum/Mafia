@@ -1,4 +1,4 @@
-package com.squad.ana.mafia;
+package com.squad.ana.mafia.activity;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
@@ -8,12 +8,8 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -27,7 +23,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
+import com.squad.ana.mafia.engine.Engine;
+import com.squad.ana.mafia.message.AttackMessage;
+import com.squad.ana.mafia.R;
+import com.squad.ana.mafia.network.ReceiveAsyncTask;
+import com.squad.ana.mafia.network.SendAsyncTask;
+import com.squad.ana.mafia.network.WiFiDirectBroadcastReceiver;
 
 /**
  * A fragment with a Google +1 button.
@@ -38,60 +39,52 @@ import com.google.android.gms.maps.model.MarkerOptions;
 public class RadarActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-    private Entity entity;
-    private Button fireBT;
-    private Button hideBT;
-    private Location location;
-
-    private static final long SERVICE_BROADCASTING_INTERVAL = 5;
-    private static final long SERVICE_DISCOVERING_INTERVAL = 5;
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
-    private Handler mBroadcastingHandler = new Handler();
-    private Handler mServiceDiscoveringHandler = new Handler();
-    private WifiP2pServiceRequest mWifiP2pServiceRequest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_radar);
+
+        //Initialized
+        Engine.init(this);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        WifiInfo wInfo = wifiManager.getConnectionInfo();
-        String macAddress = wInfo.getMacAddress();
-
-        this.entity = new Entity(new Location(LocationManager.GPS_PROVIDER), macAddress);
-
         //get buttons
-        fireBT = (Button) findViewById(R.id.fireBT);
-        hideBT = (Button) findViewById(R.id.hideBT);
+        Button fireBT = (Button) findViewById(R.id.fireBT);
+        Button hideBT = (Button) findViewById(R.id.hideBT);
 
         //add button listeners
         fireBT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //get all entities in range
+                String address = Engine.attack();
+                if(address != null) {
+                    // Create update message
+                    AttackMessage message = new AttackMessage();
+                    message.setTarget(address);
 
-                //attempt to fire
+                    new SendAsyncTask(RadarActivity.this, message).execute();
+                }
             }
         });
-
         hideBT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //hide self on network
+                Engine.toggleHiding();
             }
         });
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this, entity);
+        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
 
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -106,7 +99,8 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        mMap.getUiSettings().setAllGesturesEnabled(false);
+        //mMap.getUiSettings().setAllGesturesEnabled(false);
+        mMap.setIndoorEnabled(true);
 
         // Define a listener that responds to location updates
         LocationListener locationListener = new LocationListener() {
@@ -124,6 +118,8 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
     }
 
     private void beginLocationUpdates(LocationListener listener) {
+        mMap.setMyLocationEnabled(true);
+
         // Acquire a reference to the system Location Manager
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
@@ -147,12 +143,18 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
     }
 
     private void setLocation(Location loc) {
-        this.location = loc;
-        entity.setLocation(loc);
+        Engine.setLocation(loc);
         LatLng current = new LatLng(loc.getLatitude(), loc.getLongitude());
         mMap.clear();
-        mMap.addMarker(new MarkerOptions().position(current));
+//        if(Engine.isTarget()) {
+//            mMap.addMarker(new MarkerOptions().
+//                    position(current).
+//                    icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)));
+//        } else {
+//            mMap.addMarker(new MarkerOptions().position(current));
+//        }
         mMap.moveCamera(CameraUpdateFactory.newLatLng(current));
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(20));
     }
 
     /* register the broadcast receiver with the intent values to be matched */

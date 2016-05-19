@@ -1,6 +1,4 @@
-package com.squad.ana.mafia;
-
-import android.location.Location;
+package com.squad.ana.mafia.message;
 
 /**
  * Created by millerna on 5/6/2016.
@@ -10,11 +8,15 @@ public class UpdateMessage implements IProtocol {
     private String type;
     private boolean isHidden;
     private String src;
-    private Double[] coords;
+    private double[] loc;
 
-    public boolean getIsHidden() {return isHidden; }
+    public UpdateMessage() {
+        this.type = IProtocol.UPDATE;
+    }
 
-    public void setIsHidden(boolean isHidden) { this.isHidden = isHidden; }
+    public boolean isHidden() {return isHidden; }
+
+    public void setHidden(boolean isHidden) { this.isHidden = isHidden; }
 
     public String getSrc() { return src; }
 
@@ -25,14 +27,9 @@ public class UpdateMessage implements IProtocol {
         return type;
     }
 
-    @Override
-    public void setType(String type) {
-        this.type = type;
-    }
+    public double[] getLocation() { return this.loc; }
 
-    public Double[] getLocation() { return this.coords; }
-
-    public void setLocation(Double[] coords) { this.coords = coords; }
+    public void setLocation(double[] location) { this.loc = location; }
 
     @Override
     public String toString() {
@@ -41,7 +38,7 @@ public class UpdateMessage implements IProtocol {
         buffer.append(System.getProperty("line.separator"));
         buffer.append(Headers.SOURCE.toString() + ": " + this.src);
         buffer.append(System.getProperty("line.separator"));
-        buffer.append(Headers.LOCATION.toString() + ": " + this.coords[0] + "," + this.coords[1]);
+        buffer.append(Headers.LOCATION.toString() + ": " + loc[0] + "," + loc[1]);
         buffer.append(System.getProperty("line.separator"));
         buffer.append(Headers.IS_HIDDEN.toString() + ": " + this.isHidden);
         buffer.append(System.getProperty("line.separator"));

@@ -1,18 +1,18 @@
-package com.squad.ana.mafia;
+package com.squad.ana.mafia.network;
 
 import android.app.Activity;
 import android.content.Context;
-import android.location.Location;
 import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.widget.Toast;
 
+import com.squad.ana.mafia.message.IProtocol;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.URL;
 import java.nio.charset.Charset;
 
 /**

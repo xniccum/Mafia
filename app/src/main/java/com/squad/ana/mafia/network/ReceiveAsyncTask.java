@@ -1,14 +1,16 @@
-package com.squad.ana.mafia;
+package com.squad.ana.mafia.network;
 
 import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
+import com.squad.ana.mafia.engine.Engine;
+import com.squad.ana.mafia.message.AttackMessage;
+import com.squad.ana.mafia.message.IProtocol;
+import com.squad.ana.mafia.message.UpdateMessage;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -57,10 +59,12 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
                 });
                 final String data = new String(packet.getData()).trim();
                 IProtocol request = parseRequestString(data);
-                if (request.getType() == IProtocol.UPDATE) {
-                    // TODO: Handle update request
+                if (request.getType().equals(IProtocol.UPDATE)) {
+                    Engine.updatePlayers((UpdateMessage)request);
                 } else {
-                    // TODO: Handle attack request
+                    if(((AttackMessage)request).getTarget().equals(Engine.getMacAddress())) {
+                        Engine.die();
+                    }
                 }
 
 
@@ -87,19 +91,19 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
         return null;
     }
 
-    private String readInput(InputStream inputStream) throws IOException {
-        BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
-        StringBuilder total = new StringBuilder();
-        String line;
-        while ((line = r.readLine()) != null) {
-            total.append(line).append('\n');
-        }
-        return total.toString();
-    }
+//    private String readInput(InputStream inputStream) throws IOException {
+//        BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
+//        StringBuilder total = new StringBuilder();
+//        String line;
+//        while ((line = r.readLine()) != null) {
+//            total.append(line).append('\n');
+//        }
+//        return total.toString();
+//    }
 
     public IProtocol parseRequestString(String requestString) {
         String[] fields = requestString.split("\n");
-        IProtocol protocol = new UpdateMessage();
+        IProtocol protocol = null;
         String[][] fieldPairs = new String[fields.length][];
         for (int i = 0; i < fields.length; i++) {
             fieldPairs[i] = fields[i].split(":");
@@ -107,18 +111,18 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
 
         String fieldHeader = fieldPairs[0][0].trim();
         String fieldProperty = fieldPairs[0][1].trim();
-        if (fieldHeader == IProtocol.Headers.TYPE.toString()) {
-            if (fieldProperty == IProtocol.ATTACK) {
-                protocol.setType(IProtocol.ATTACK);
+        if (fieldHeader.equals(IProtocol.Headers.TYPE.toString())) {
+            if (fieldProperty.equals(IProtocol.ATTACK)) {
+                protocol = new AttackMessage();;
                 ((AttackMessage) protocol).setTarget(fieldPairs[1][1]);
             } else {
-                protocol.setType(IProtocol.UPDATE);
+                protocol = new UpdateMessage();
                 ((UpdateMessage) protocol).setSrc(fieldPairs[1][1]);
                 String[] location = fieldPairs[2][1].split(",");
                 double latitude = Double.parseDouble(location[0]);
                 double longitude = Double.parseDouble(location[1]);
-                ((UpdateMessage) protocol).setLocation(new Double[]{latitude, longitude});
-                ((UpdateMessage) protocol).setIsHidden(Boolean.parseBoolean(fieldPairs[3][1]));
+                ((UpdateMessage) protocol).setLocation(new double[]{latitude, longitude});
+                ((UpdateMessage) protocol).setHidden(Boolean.parseBoolean(fieldPairs[3][1]));
             }
         }
         return protocol;

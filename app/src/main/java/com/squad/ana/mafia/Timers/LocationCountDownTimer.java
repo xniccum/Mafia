@@ -1,10 +1,11 @@
-package com.squad.ana.mafia;
+package com.squad.ana.mafia.Timers;
 
-import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.widget.Toast;
+
+import com.squad.ana.mafia.activity.RadarActivity;
 
 public class LocationCountDownTimer extends CountDownTimer {
 
@@ -19,7 +20,7 @@ public class LocationCountDownTimer extends CountDownTimer {
 
     @Override
     public void onFinish() {
-        ((Activity) rActivity).runOnUiThread(new Runnable() {
+        rActivity.runOnUiThread(new Runnable() {
             public void run() {
                 Toast.makeText(rActivity, "Countdown finished", Toast.LENGTH_SHORT).show();
             }

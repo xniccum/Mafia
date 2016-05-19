@@ -3,5 +3,7 @@
     <string name="google_app_id">AIzaSyD7Q7IDEmaOrnk4WPV6Zq2z75x3alWc_C8</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_maps">Map</string>
+    <string name="fire">Fire</string>
+    <string name="hide">Hide</string>
 
 </resources>

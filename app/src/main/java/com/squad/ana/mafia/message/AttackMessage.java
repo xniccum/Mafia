@@ -1,4 +1,4 @@
-package com.squad.ana.mafia;
+package com.squad.ana.mafia.message;
 
 /**
  * Created by millerna on 5/18/2016.
@@ -8,6 +8,10 @@ public class AttackMessage implements IProtocol {
     private String type;
     private String target;
 
+    public AttackMessage() {
+        this.type = IProtocol.ATTACK;
+    }
+
     public String getTarget() { return target; }
 
     public void setTarget(String target) { this.target = target; }
@@ -15,11 +19,6 @@ public class AttackMessage implements IProtocol {
     @Override
     public String getType() {
         return type;
-    }
-
-    @Override
-    public void setType(String type) {
-        this.type = type;
     }
 
     @Override
