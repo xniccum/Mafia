@@ -175,7 +175,7 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
 //            mMap.addMarker(new MarkerOptions().position(current));
 //        }
         mMap.moveCamera(CameraUpdateFactory.newLatLng(current));
-        mMap.moveCamera(CameraUpdateFactory.zoomTo(20));
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(mMap.getMaxZoomLevel()));
     }
 
     public void updatePlayers() {
