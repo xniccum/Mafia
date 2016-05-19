@@ -59,8 +59,11 @@ public class ReceiveAsyncTask extends AsyncTask<URL, Integer, Long> {
                 });
                 final String data = new String(packet.getData()).trim();
                 IProtocol request = parseRequestString(data);
+
                 if (request.getType().equals(IProtocol.UPDATE)) {
-                    Engine.updatePlayers((UpdateMessage)request);
+                    if(!((UpdateMessage)request).getSrc().equals(Engine.getMacAddress())) {
+                        Engine.updatePlayers((UpdateMessage)request);
+                    }
                 } else {
                     if(((AttackMessage)request).getTarget().equals(Engine.getMacAddress())) {
                         Engine.die();
