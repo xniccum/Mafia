@@ -20,15 +20,21 @@ import android.widget.Button;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.squad.ana.mafia.Timers.LocationUpdateTimer;
 import com.squad.ana.mafia.engine.Engine;
 import com.squad.ana.mafia.message.AttackMessage;
 import com.squad.ana.mafia.R;
+import com.squad.ana.mafia.message.UpdateMessage;
 import com.squad.ana.mafia.network.ReceiveAsyncTask;
 import com.squad.ana.mafia.network.SendAsyncTask;
 import com.squad.ana.mafia.network.WiFiDirectBroadcastReceiver;
+
+import java.util.Collection;
 
 /**
  * A fragment with a Google +1 button.
@@ -39,6 +45,7 @@ import com.squad.ana.mafia.network.WiFiDirectBroadcastReceiver;
 public class RadarActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+    private LocationSource.OnLocationChangedListener mapListener = null;
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
     private BroadcastReceiver mReceiver;
@@ -79,6 +86,7 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 Engine.toggleHiding();
+                Log.d("Mafia","Hiding = "+Engine.isHiding());
             }
         });
 
@@ -101,11 +109,23 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
         mMap = googleMap;
         //mMap.getUiSettings().setAllGesturesEnabled(false);
         mMap.setIndoorEnabled(true);
+        mMap.setLocationSource(new LocationSource() {
+            @Override
+            public void activate(OnLocationChangedListener onLocationChangedListener) {
+                mapListener = onLocationChangedListener;
+            }
+
+            @Override
+            public void deactivate() {
+               mapListener = null;
+            }
+        });
 
         // Define a listener that responds to location updates
         LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 setLocation(location);
+                mapListener.onLocationChanged(location);
             }
 
             public void onStatusChanged(String provider, int status, Bundle extras) {}
@@ -140,12 +160,13 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
         else {
             Log.d("Mafia-location","Permission Not Granted");
         }
+
+        new LocationUpdateTimer(100, 50,this).start();
     }
 
     private void setLocation(Location loc) {
         Engine.setLocation(loc);
         LatLng current = new LatLng(loc.getLatitude(), loc.getLongitude());
-        mMap.clear();
 //        if(Engine.isTarget()) {
 //            mMap.addMarker(new MarkerOptions().
 //                    position(current).
@@ -155,6 +176,15 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
 //        }
         mMap.moveCamera(CameraUpdateFactory.newLatLng(current));
         mMap.moveCamera(CameraUpdateFactory.zoomTo(20));
+    }
+
+    public void updatePlayers() {
+        mMap.clear();
+        Collection<UpdateMessage> messages = Engine.getPlayers().values();
+        for(UpdateMessage update: messages) {
+            LatLng current = new LatLng(update.getLocation()[0], update.getLocation()[1]);
+            mMap.addMarker(new MarkerOptions().position(current));
+        }
     }
 
     /* register the broadcast receiver with the intent values to be matched */
