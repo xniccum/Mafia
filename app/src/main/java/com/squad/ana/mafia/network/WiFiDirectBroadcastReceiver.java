@@ -13,10 +13,11 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.widget.Toast;
 
-import com.squad.ana.mafia.Timers.LocationCountDownTimer;
 import com.squad.ana.mafia.engine.Engine;
 import com.squad.ana.mafia.message.UpdateMessage;
 import com.squad.ana.mafia.activity.RadarActivity;
@@ -33,6 +34,9 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
     private Channel mChannel;
     private RadarActivity rActivity;
     private List<WifiP2pDevice> peers = new ArrayList<>();
+    private CountDownTimer updateTimer;
+    private Handler updateHandler = new Handler();
+    private int updateInterval = 5000;
 
     public WiFiDirectBroadcastReceiver(WifiP2pManager manager, Channel channel, RadarActivity activity) {
         this.mManager = manager;
@@ -95,13 +99,11 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         public void onPeersAvailable(WifiP2pDeviceList peerList) {
             if(Engine.isInitilized()) {
                 // Out with the old, in with the new.
+                stopUpdatingTask();
                 peers.clear();
                 peers.addAll(peerList.getDeviceList());
 
                 System.out.println("Printing peers: ");
-
-                final long startTime = 10;
-                final long interval = 5;
 
                 for (WifiP2pDevice device : peers) {
                     System.out.println("Peer: " + device.toString());
@@ -130,21 +132,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                         }
                     });
                 }
-
-                Location location = Engine.getLocation();
-                String macAddress = Engine.getMacAddress();
-
-                if (location != null) {
-                    // Create update message
-                    UpdateMessage message = new UpdateMessage();
-                    message.setHidden(Engine.isHiding());
-                    message.setLocation(new double[]{location.getLatitude(), location.getLongitude()});
-                    message.setSrc(macAddress);
-
-                    AsyncTask<Object, Integer, Long> sendTask = new SendAsyncTask(rActivity, message);
-                    CountDownTimer cDownTimer = new LocationCountDownTimer(startTime, interval, rActivity, sendTask);
-                    cDownTimer.start();
-                }
+                startUpdatingTask();
             }
 
             // If an AdapterView is backed by this data, notify it
@@ -157,4 +145,41 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 //            }
         }
     };
+
+    Runnable mUpdateRunner = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                Location location = Engine.getLocation();
+                String macAddress = Engine.getMacAddress();
+                System.out.println("UPDATING TASK");
+                if (location != null) {
+
+                    // Create update message
+                    UpdateMessage message = new UpdateMessage();
+                    message.setHidden(Engine.isHiding());
+                    message.setLocation(new double[]{location.getLatitude(), location.getLongitude()});
+                    message.setSrc(macAddress);
+
+                    AsyncTask<Object, Integer, Long> updateTask = new SendAsyncTask(rActivity, message);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                        updateTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    else
+                        updateTask.execute();
+                }
+            } finally {
+                // 100% guarantee that this always happens, even if
+                // your update method throws an exception
+                updateHandler.postDelayed(mUpdateRunner, updateInterval);
+            }
+        }
+    };
+
+    void startUpdatingTask() {
+        mUpdateRunner.run();
+    }
+
+    void stopUpdatingTask() {
+        updateHandler.removeCallbacks(mUpdateRunner);
+    }
 }
