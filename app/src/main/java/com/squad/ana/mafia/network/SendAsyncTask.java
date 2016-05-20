@@ -36,9 +36,9 @@ public class SendAsyncTask extends AsyncTask<Object, Integer, Long> {
 
 
         Map<String, String> addresses = new HashMap<String, String>();
-        addresses.put("f8:e0:79:3c:3e:d6","137.112.221.184");
-        addresses.put("78:24:af:14:e6:38","137.112.237.219");
-        addresses.put("78:4b:87:4f:DC:DC","137.112.231.20");
+        addresses.put("f8:e0:79:3c:3e:d6","137.112.221.210");
+        addresses.put("78:24:af:14:e6:38","137.112.237.16");
+        addresses.put("78:4b:87:4f:DC:DC","137.112.231.148");
 
         for (String mac : addresses.keySet()) {
             if (!Engine.getMacAddress().toLowerCase().equals(mac.toLowerCase())) {
