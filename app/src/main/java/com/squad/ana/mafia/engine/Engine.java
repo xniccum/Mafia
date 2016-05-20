@@ -1,8 +1,10 @@
 package com.squad.ana.mafia.engine;
 
+import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
 import android.net.wifi.WifiManager;
+import android.widget.Toast;
 
 import com.squad.ana.mafia.message.AttackMessage;
 import com.squad.ana.mafia.message.IProtocol;
@@ -23,7 +25,6 @@ public class Engine {
     private static boolean hiding;
     private static boolean dead;
     private static int score;
-    private static boolean sighted;
     private static boolean initilized = false;
 
     public static void init(Context context) {
@@ -32,7 +33,7 @@ public class Engine {
                 .getMacAddress();
         players = new HashMap<>();
         location = null;
-        hiding = true;
+        hiding = false;
         dead = false;
         score = 0;
         initilized = true;
@@ -49,14 +50,14 @@ public class Engine {
     }
     public static Location getLocation() { return location;}
     public static int getScore() {return score;}
-    public static boolean isTarget() { return sighted; }
-
     public static void toggleHiding() { hiding = !hiding;}
 
     public static void updatePlayers(UpdateMessage message) {
-        if (!players.containsKey(message.getSrc()))
+        if (message.isHidden() == true && players.containsKey(message.getSrc())) {
             players.remove(message.getSrc());
-        players.put(message.getSrc(), message);
+        } else if (!message.isHidden() && !players.containsKey(message.getSrc())) {
+            players.put(message.getSrc(), message);
+        }
     }
     public static Map<String, UpdateMessage> getPlayers() {
         return players;
@@ -73,7 +74,7 @@ public class Engine {
             tempPlayer = players.get(p);
             playerDistance = distanceTo(tempPlayer.getLocation());
             // loops through the list of known players to find the nearest one
-            if (tempPlayer.isHidden() && playerDistance < dist) {
+            if (!tempPlayer.isHidden() && playerDistance < dist) {
                 dist = playerDistance;
                 target = tempPlayer;
             }
@@ -81,6 +82,7 @@ public class Engine {
 
         if (dist < KILLRANGE) {
             Engine.score++;
+            players.remove(target.getSrc());
             return target.getSrc();
         }
         return null;
@@ -104,8 +106,4 @@ public class Engine {
                 );
         return temp[0];
     }
-
-
-
-
 }

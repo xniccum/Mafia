@@ -9,7 +9,10 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -29,6 +32,7 @@ import com.squad.ana.mafia.Timers.LocationUpdateTimer;
 import com.squad.ana.mafia.engine.Engine;
 import com.squad.ana.mafia.message.AttackMessage;
 import com.squad.ana.mafia.R;
+import com.squad.ana.mafia.message.IProtocol;
 import com.squad.ana.mafia.message.UpdateMessage;
 import com.squad.ana.mafia.network.ReceiveAsyncTask;
 import com.squad.ana.mafia.network.SendAsyncTask;
@@ -50,6 +54,8 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
     private WifiP2pManager.Channel mChannel;
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
+    private Handler updateHandler = new Handler();
+    private int updateInterval = 5000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +64,7 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
 
         //Initialized
         Engine.init(this);
+        System.setProperty("java.net.preferIPv4Stack" , "true");
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -73,12 +80,19 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 String address = Engine.attack();
+                System.out.println("Attacking: " + address);
                 if(address != null) {
                     // Create update message
                     AttackMessage message = new AttackMessage();
                     message.setTarget(address);
 
-                    new SendAsyncTask(RadarActivity.this, message).execute();
+                    System.out.println("ATTACKING");
+
+                    AsyncTask attack = new SendAsyncTask(RadarActivity.this, message);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                        attack.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    else
+                        attack.execute();
                 }
             }
         });
@@ -86,21 +100,22 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 Engine.toggleHiding();
-                Log.d("Mafia","Hiding = "+Engine.isHiding());
             }
         });
 
-        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+//        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+//        mChannel = mManager.initialize(this, getMainLooper(), null);
+//        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
+//
+//
+//        mIntentFilter = new IntentFilter();
+//        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+//        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+//        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+//        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+//        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION);
 
-        mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION);
-
+        startUpdatingTask();
         new ReceiveAsyncTask(this).execute();
     }
 
@@ -191,14 +206,14 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(mReceiver, mIntentFilter);
+//        registerReceiver(mReceiver, mIntentFilter);
     }
 
     /* unregister the broadcast receiver */
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(mReceiver);
+//        unregisterReceiver(mReceiver);
     }
 
     @Override
@@ -221,5 +236,40 @@ public class RadarActivity extends FragmentActivity implements OnMapReadyCallbac
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    Runnable mUpdateRunner = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                Location location = Engine.getLocation();
+                String macAddress = Engine.getMacAddress();
+                if (location != null) {
+                    // Create update message
+                    UpdateMessage message = new UpdateMessage();
+                    message.setHidden(Engine.isHiding());
+                    message.setLocation(new double[]{location.getLatitude(), location.getLongitude()});
+                    message.setSrc(macAddress);
+
+                    AsyncTask<Object, Integer, Long> updateTask = new SendAsyncTask(RadarActivity.this, message);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+                        updateTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    else
+                        updateTask.execute();
+                }
+            } finally {
+                // 100% guarantee that this always happens, even if
+                // your update method throws an exception
+                updateHandler.postDelayed(mUpdateRunner, updateInterval);
+            }
+        }
+    };
+
+    void startUpdatingTask() {
+        mUpdateRunner.run();
+    }
+
+    void stopUpdatingTask() {
+        updateHandler.removeCallbacks(mUpdateRunner);
     }
 }

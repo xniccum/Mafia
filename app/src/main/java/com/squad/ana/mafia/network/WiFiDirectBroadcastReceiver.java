@@ -49,13 +49,12 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
         final String action = intent.getAction();
 
-        // TODO: Refactor using strategy pattern
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
             int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
             if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
                 System.out.println("WiFi P2P is enabled");
 
-                new ReceiveAsyncTask(rActivity).execute();
+                //  new ReceiveAsyncTask(rActivity).execute();
                 mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {

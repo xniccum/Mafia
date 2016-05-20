@@ -34,13 +34,13 @@ public class UpdateMessage implements IProtocol {
     @Override
     public String toString() {
         StringBuffer buffer = new StringBuffer();
-        buffer.append(Headers.TYPE.toString() + ": " + this.type);
+        buffer.append(Headers.TYPE.toString() + "; " + this.type);
         buffer.append(System.getProperty("line.separator"));
-        buffer.append(Headers.SOURCE.toString() + ": " + this.src);
+        buffer.append(Headers.SOURCE.toString() + "; " + this.src);
         buffer.append(System.getProperty("line.separator"));
-        buffer.append(Headers.LOCATION.toString() + ": " + loc[0] + "," + loc[1]);
+        buffer.append(Headers.LOCATION.toString() + "; " + loc[0] + "," + loc[1]);
         buffer.append(System.getProperty("line.separator"));
-        buffer.append(Headers.IS_HIDDEN.toString() + ": " + this.isHidden);
+        buffer.append(Headers.IS_HIDDEN.toString() + "; " + this.isHidden);
         buffer.append(System.getProperty("line.separator"));
         return buffer.toString();
     }

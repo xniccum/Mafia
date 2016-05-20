@@ -24,9 +24,9 @@ public class AttackMessage implements IProtocol {
     @Override
     public String toString() {
         StringBuffer buffer = new StringBuffer();
-        buffer.append(IProtocol.Headers.TYPE.toString() + ": " + this.type);
+        buffer.append(IProtocol.Headers.TYPE.toString() + "; " + this.type);
         buffer.append(System.getProperty("line.separator"));
-        buffer.append(IProtocol.Headers.TARGET.toString() + ": " + this.target);
+        buffer.append(IProtocol.Headers.TARGET.toString() + "; " + this.target);
         buffer.append(System.getProperty("line.separator"));
         return buffer.toString();
     }

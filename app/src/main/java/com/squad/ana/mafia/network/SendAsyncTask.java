@@ -7,6 +7,7 @@ import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.widget.Toast;
 
+import com.squad.ana.mafia.engine.Engine;
 import com.squad.ana.mafia.message.IProtocol;
 
 import java.io.IOException;
@@ -14,6 +15,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by millerna on 5/3/2016.
@@ -28,45 +31,36 @@ public class SendAsyncTask extends AsyncTask<Object, Integer, Long> {
         this.message = message;
     }
 
-    public InetAddress getBroadcastAddress() throws IOException {
-        WifiManager wifi = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        DhcpInfo dhcp = wifi.getDhcpInfo();
-
-        int broadcast = (dhcp.ipAddress & dhcp.netmask) | ~dhcp.netmask;
-        byte[] quads = new byte[4];
-        for (int k = 0; k < 4; k++)
-            quads[k] = (byte) ((broadcast >> k * 8) & 0xFF);
-        return InetAddress.getByAddress(quads);
-    }
-
     @Override
     protected Long doInBackground(Object... params) {
 
+
+        Map<String, String> addresses = new HashMap<String, String>();
+        addresses.put("f8:e0:79:3c:3e:d6","137.112.221.184");
+        addresses.put("78:24:af:14:e6:38","137.112.237.219");
+        addresses.put("78:4b:87:4f:DC:DC","137.112.231.20");
+
+        for (String mac : addresses.keySet()) {
+            if (!Engine.getMacAddress().toLowerCase().equals(mac.toLowerCase())) {
+                sendMessage(addresses.get(mac));
+            }
+        }
+        return null;
+    }
+
+    private void sendMessage(String address) {
         DatagramSocket socket = null;
-        ((Activity)context).runOnUiThread(new Runnable() {
-            public void run() {
-            try {
-                Toast.makeText(context, "Starting async task: Group owner: " + getBroadcastAddress().toString() + "", Toast.LENGTH_SHORT).show();
-            } catch (IOException e) {
-                Toast.makeText(context, "Get broadcast address exception: " + e.toString(), Toast.LENGTH_SHORT).show();
-            }
-            }
-        });
         try {
-            byte[] buf = message.toString().getBytes(Charset.forName("UTF-8"));
+            final InetAddress broadcastAddress = InetAddress.getByName(address);
+            if (broadcastAddress != null) {
+                byte[] buf = message.toString().getBytes(Charset.forName("UTF-8"));
 
-            //Open a random port to send the package
-            socket = new DatagramSocket();
-            socket.setBroadcast(true);
-            DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, getBroadcastAddress(), IProtocol.PORT);
-            socket.send(sendPacket);
-
-            final String address = getBroadcastAddress().getHostAddress();
-            ((Activity)context).runOnUiThread(new Runnable() {
-                public void run() {
-                    Toast.makeText(context, "Broadcast packet sent to: " + address, Toast.LENGTH_SHORT).show();
-                }
-            });
+                //Open a random port to send the package
+                socket = new DatagramSocket();
+                socket.setBroadcast(true);
+                DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, broadcastAddress, IProtocol.PORT);
+                socket.send(sendPacket);
+            }
         } catch (IOException e) {
             final String exc = e.toString();
             ((Activity)context).runOnUiThread(new Runnable() {
@@ -87,6 +81,5 @@ public class SendAsyncTask extends AsyncTask<Object, Integer, Long> {
                 }
             }
         }
-        return null;
     }
 }
